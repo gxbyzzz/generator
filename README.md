@@ -1,1 +1,1 @@
-# generator
+# cc-gen-api
