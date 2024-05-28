@@ -83,4 +83,4 @@ def bin_info(bin):
         return jsonify({"error": "Invalid BIN"}), 400
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='https://cc-gen-api.onrender.com/', port=5000)
