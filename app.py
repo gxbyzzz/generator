@@ -60,8 +60,23 @@ def gen(bin_part: str, mm: str = None, yy: str = None, cvv: str = None):
 
     return f'{cc}|{mm}|{yy}|{cvv}'
 
+@app.route('/generate/<params>', methods=['GET'])
+def generate_get(params):
+    try:
+        bin_part, mm, yy, cvv = params.split('|')
+        mm = mm if mm.lower() != 'rnd' else None
+        yy = yy if yy.lower() != 'rnd' else None
+        cvv = cvv if cvv.lower() != 'rnd' else None
+
+        result = [gen(bin_part, mm, yy, cvv) for _ in range(10)]
+        return jsonify({"cards": result}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": "Invalid input format"}), 400
+
 @app.route('/generate', methods=['POST'])
-def generate():
+def generate_post():
     data = request.get_json()
     bin_part = data.get('bin')
     mm = data.get('mm', 'rnd')
@@ -81,6 +96,10 @@ def bin_info(bin):
         return jsonify(response.json()), 200
     else:
         return jsonify({"error": "Invalid BIN"}), 400
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
