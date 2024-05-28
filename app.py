@@ -1,105 +1,106 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 import random
-import re
-import time
-import requests
 
 app = Flask(__name__)
 
-type_cc = {'3': 'amex', '4': 'visa', '5': 'master', '6': 'discover'}
-all_num = {'amex': 15, 'visa': 16, 'master': 16, 'discover': 16}
-cvvs = {'amex': 4, 'visa': 3, 'master': 3, 'discover': 3}
-ano_no = ["2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-mes_no = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+class Tool:
+    TYPE_CC = {'3': 'amex', '4': 'visa', '5': 'master', '6': 'discover'}
+    ALL_NUM = {'amex': 15, 'visa': 16, 'master': 16, 'discover': 16}
+    CVVS = {'amex': 4, 'visa': 3, 'master': 3, 'discover': 3}
+    ANO_NO = ["2024", "2025", "2026", "2027", "2028", "2029", "2030"]
+    MES_NO = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
 
-def gen(bin_part: str, mm: str = None, yy: str = None, cvv: str = None):
-    first_digit = bin_part[0]
-    if first_digit not in type_cc:
-        raise ValueError("Invalid card type")
+    def __init__(self, bin_part, mm=None, yy=None, cvv=None):
+        self.bin_part = bin_part.replace('x', '')
+        self.first_digit = bin_part[0]
+        if self.first_digit not in self.TYPE_CC:
+            raise ValueError("Invalid card type")
+        
+        self.card_type = self.TYPE_CC[self.first_digit]
+        self.card_length = self.ALL_NUM[self.card_type]
+        self.cvv_length = self.CVVS[self.card_type]
+        
+        self.mm = self.random_month() if mm is None or mm.lower() == 'rnd' else self.validate_month(mm)
+        self.yy = self.random_year() if yy is None or yy.lower() == 'rnd' else self.validate_year(yy)
+        self.cvv = self.random_cvv() if cvv is None or cvv.lower() == 'rnd' else self.validate_cvv(cvv)
 
-    cvv_length = cvvs[type_cc[first_digit]]
-    card_length = all_num[type_cc[first_digit]]
+    def random_month(self):
+        return f'{random.randint(1, 12):02d}'
 
-    bin_part = bin_part.replace('x', '')
-    bin_part_len = len(bin_part)
-    remaining_length = card_length - bin_part_len - 1
+    def random_year(self):
+        return random.choice(self.ANO_NO)
 
-    card_no = [int(i) for i in bin_part]
-    card_num = [int(i) for i in bin_part]
+    def random_cvv(self):
+        return ''.join([str(random.randint(0, 9)) for _ in range(self.cvv_length)])
 
-    if remaining_length > 0:
-        remaining_random = [random.randint(0, 9) for _ in range(remaining_length)]
-        for i in remaining_random:
-            card_no.append(i)
-            card_num.append(i)
+    def validate_month(self, mm):
+        if not (1 <= int(mm) <= 12):
+            raise ValueError("Invalid month")
+        return f'{int(mm):02d}'
 
-    for t in range(0, card_length - 1, 2):
-        card_no[t] = card_no[t] * 2
-        if card_no[t] > 9:
-            card_no[t] -= 9
+    def validate_year(self, yy):
+        if yy not in self.ANO_NO:
+            raise ValueError("Invalid year")
+        return yy
 
-    s = sum(card_no)
-    mod = s % 10
-    check_sum = 0 if mod == 0 else (10 - mod)
-    card_num.append(check_sum)
-    card_num = [str(i) for i in card_num]
-    cc = "".join(card_num)
+    def validate_cvv(self, cvv):
+        if not cvv.isdigit() or len(cvv) != self.cvv_length:
+            raise ValueError("Invalid CVV")
+        return f'{int(cvv):0{self.cvv_length}d}'
 
-    if mm is None or mm.lower() == 'rnd':
-        mm = f'{random.randint(1, 12):02d}'
+    def generate_card_number(self):
+        bin_part_len = len(self.bin_part)
+        lengthGen = self.card_length - bin_part_len - 1
 
-    if yy is None or yy.lower() == 'rnd':
-        yy = random.choice(ano_no)
-    elif yy not in ano_no:
-        raise ValueError("Invalid year")
+        card_no = [int(i) for i in self.bin_part]
+        card_num = card_no.copy()
 
-    if cvv is None or cvv.lower() == 'rnd':
-        cvv = ''.join([str(random.randint(0, 9)) for _ in range(cvv_length)])
-    else:
-        cvv = f'{int(cvv):0{cvv_length}d}'
+        if lengthGen > 0:
+            randomGen = [random.randint(0, 9) for _ in range(lengthGen)]
+            card_no.extend(randomGen)
+            card_num.extend(randomGen)
 
-    return f'{cc}|{mm}|{yy}|{cvv}'
+        for t in range(0, self.card_length - 1, 2):
+            card_no[t] = card_no[t] * 2
+            if card_no[t] > 9:
+                card_no[t] -= 9
+
+        s = sum(card_no)
+        mod = s % 10
+        check_sum = 0 if mod == 0 else (10 - mod)
+        card_num.append(check_sum)
+
+        return ''.join(map(str, card_num))
+
+    def generate(self):
+        cc_number = self.generate_card_number()
+        return f'{cc_number}|{self.mm}|{self.yy}|{self.cvv}'
+
+    @classmethod
+    def Generator(cls, data):
+        user_input = data.strip()
+        parts = user_input.split('|')
+        bin_part = parts[0]
+        mm = parts[1] if len(parts) > 1 else 'rnd'
+        yy = parts[2] if len(parts) > 2 else 'rnd'
+        cvv = parts[3] if len(parts) > 3 else 'rnd'
+
+        try:
+            ccs = [cls(bin_part, mm, yy, cvv).generate() for _ in range(10)]
+            response = "\n".join(ccs)
+            return f"\nInput: {bin_part}|{mm}|{yy}|{cvv}\n" + response
+        except ValueError as e:
+            return str(e)
 
 @app.route('/generate/<params>', methods=['GET'])
 def generate_get(params):
     try:
-        bin_part, mm, yy, cvv = params.split('|')
-        mm = mm if mm.lower() != 'rnd' else None
-        yy = yy if yy.lower() != 'rnd' else None
-        cvv = cvv if cvv.lower() != 'rnd' else None
-
-        result = [gen(bin_part, mm, yy, cvv) for _ in range(10)]
-        return jsonify({"cards": result}), 200
+        response = Tool.Generator(params)
+        return jsonify({"result": response}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": "Invalid input format"}), 400
-
-@app.route('/generate', methods=['POST'])
-def generate_post():
-    data = request.get_json()
-    bin_part = data.get('bin')
-    mm = data.get('mm', 'rnd')
-    yy = data.get('yy', 'rnd')
-    cvv = data.get('cvv', 'rnd')
-
-    try:
-        result = [gen(bin_part, mm, yy, cvv) for _ in range(10)]
-        return jsonify({"cards": result}), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-@app.route('/bininfo/<bin>', methods=['GET'])
-def bin_info(bin):
-    response = requests.get(f'https://anthony086.alwaysdata.net/index.php?bin={bin}')
-    if response.status_code == 200:
-        return jsonify(response.json()), 200
-    else:
-        return jsonify({"error": "Invalid BIN"}), 400
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
