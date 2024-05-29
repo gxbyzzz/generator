@@ -99,9 +99,9 @@ def index():
         "Creacion": "Mayo del 2024",
         "Descripcion": "API gratuita y de acceso público diseñada para generar números de tarjetas de crédito para pruebas. Esta herramienta está destinada a facilitar el desarrollo y pruebas de software, análisis de datos, y aplicaciones educativas. El servicio es completamente gratuito y cualquier cobro asociado a su uso no está autorizado, pudiendo constituir una actividad fraudulenta.",
         "Proyecto": "Onyx APIs 2024",
-        "About API": [
+        "Sobre API": [
             {
-                "Instrucciones": "Utilice las rutas especificadas para generar números de tarjetas de crédito.",
+                "Instrucciones": "Utilice las rutas especificadas para generar números de tarjetas de crédito ficticias.",
                 "Nota": "API sin fines de lucro."
             }
         ]
@@ -117,6 +117,22 @@ def generate_get(params):
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": "Invalid input format"}), 400
+
+@app.errorhandler(404)
+def page_not_found(e):
+    info = {
+        "Autor": "@gxbyzzz",
+        "Creacion": "Mayo del 2024",
+        "Descripcion": "API gratuita y de acceso público diseñada para generar números de tarjetas de crédito para pruebas. Esta herramienta está destinada a facilitar el desarrollo y pruebas de software, análisis de datos, y aplicaciones educativas. El servicio es completamente gratuito y cualquier cobro asociado a su uso no está autorizado, pudiendo constituir una actividad fraudulenta.",
+        "Proyecto": "Onyx APIs 2024",
+        "Sobre API": [
+            {
+                "Instrucciones": "Utilice las rutas especificadas para generar números de tarjetas de crédito ficticias.",
+                "Nota": "API sin fines de lucro."
+            }
+        ]
+    }
+    return jsonify(info), 404
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
